@@ -1,5 +1,5 @@
 
-AVRASM ver. 2.2.8  D:\Documents\GitHub\Laboratorio3\Laboratorio3\Laboratorio3\main.asm Fri Feb 21 12:23:17 2025
+AVRASM ver. 2.2.8  D:\Documents\GitHub\Laboratorio3\Laboratorio3\Laboratorio3\main.asm Fri Feb 21 18:55:44 2025
 
 [builtin](2): Including file 'C:/Program Files (x86)\Atmel\Studio\7.0\Packs\atmel\ATmega_DFP\1.7.374\avrasm\inc\m328Pdef.inc'
 D:\Documents\GitHub\Laboratorio3\Laboratorio3\Laboratorio3\main.asm(15): Including file 'C:/Program Files (x86)\Atmel\Studio\7.0\Packs\atmel\ATmega_DFP\1.7.374\avrasm\inc\M328PDEF.inc'
@@ -1045,72 +1045,122 @@ D:\Documents\GitHub\Laboratorio3\Laboratorio3\Laboratorio3\main.asm(15): Includi
                                  
                                  ; ***** END OF FILE ******************************************************
                                  // Variables en SRAM
-                                 .dseg
+                                 /*.dseg
                                  .org	SRAM_START
-000100                           CONTADOR:	.byte	1		// Guarda el contador en la SRAM
+                                 CONTADOR:	.byte	1		// Guarda el contador en la SRAM*/
                                  // Código FLASH
                                  .cseg
                                  .org	0x0000
-000000 c008                      	RJMP	SETUP
+000000 c025                      	RJMP	SETUP
                                  .org	PCI1addr			// Pin Change Interrupt PORT C
-000008 c018                      	RJMP	CONTADOR_4BITS
-                                 
+000008 c046                      	RJMP	CONTADOR_4BITS
+                                 .org	OVF0addr
+000020 c03c                      	RJMP	CONTADOR_DISPLAY
+                                 .def contador_ciclos = R20
+                                 .def CONTADOR7 = R21
+                                 .def SALIDA7 = R22
+                                 // Tabla de valores del display de 7 segmentos
+000021 7940
+000022 3024
+000023 1219
+000024 7802
+000025 1000                      Tabla7seg: .db 0x40, 0x79, 0x24, 0x30, 0x19, 0x12, 0x02, 0x78, 0x00, 0x10
                                  SETUP:
-000009 94f8                      	CLI			// Deshabilita interrupciones globales
+000026 94f8                      	CLI			// Deshabilita interrupciones globales
                                  	// Configuración de la PILA
-00000a ef0f                      	LDI		R16, LOW(RAMEND)
-00000b bf0d                      	OUT		SPL, R16
-00000c e008                      	LDI		R16, HIGH(RAMEND)
-00000d bf0e                      	OUT		SPH, R16
+000027 ef0f                      	LDI		R16, LOW(RAMEND)
+000028 bf0d                      	OUT		SPL, R16
+000029 e008                      	LDI		R16, HIGH(RAMEND)
+00002a bf0e                      	OUT		SPH, R16
+                                 	// Configuración del PRESCALER
+00002b e800                      	LDI		R16, (1 << CLKPCE)
+00002c 9300 0061                 	STS		CLKPR, R16				// Habilitar cambio de PRESCALER
+00002e e004                      	LDI		R16, 0b00000100
+00002f 9300 0061                 	STS		CLKPR, R16				// Configurar Prescaler a 16 F_cpu = 1MHz
+                                 	// INICIA TEMPORIZADOR
+000031 e003                      	LDI		R16, (1 << CS01) | (1 << CS00)  // Prescaler es 64
+000032 bd05                      	OUT		TCCR0B, R16
+000033 e30c                      	LDI		R16, 60							// Valor inicial del TCNT0
+000034 bd06                      	OUT		TCNT0, R16
+                                 	// HABILITAR INTERRUPCIONES DEL TOV0
+000035 e001                      	LDI		R16, (1 << TOIE0)			// Habilita interrupciones por desbordamiento
+000036 9300 006e                 	STS		TIMSK0, R16
                                  	// CONFIGURACIÓN DE ENTRADAS Y SALIDAS
                                  	// Configuración PORT C como entrada con pull-up habilitado
-00000e e000                      	LDI		R16, 0x00
-00000f b907                      	OUT		DDRC, R16		// Activa al PORTC como entrada
-000010 e003                      	LDI		R16, (1 << PC0) | (1 << PC1)
-000011 b908                      	OUT		PORTC, R16		// Habilita pull-ups
+000038 e000                      	LDI		R16, 0x00
+000039 b907                      	OUT		DDRC, R16				// Activa al PORTC como entrada
+00003a e003                      	LDI		R16, (1 << PC0) | (1 << PC1)
+00003b b908                      	OUT		PORTC, R16				// Habilita pull-ups
                                  	// Configuración PORT B como salida inicialmente apagada
-000012 e00f                      	LDI		R16, 0x0F
-000013 b904                      	OUT		DDRB, R16		// Activa los 4 bits menos significativos como salidas
-000014 e000                      	LDI		R16, 0x00
-000015 b905                      	OUT		PORTB, R16		// Apaga la salida
+00003c e00f                      	LDI		R16, 0x0F
+00003d b904                      	OUT		DDRB, R16				// Activa los 4 bits menos significativos como salidas
+00003e e000                      	LDI		R16, 0x00
+00003f b905                      	OUT		PORTB, R16				// Apaga la salida
+                                 	// Configuración PORT D como salida inicialmente apagada
+000040 ef0f                      	LDI		R16, 0xFF
+000041 b90a                      	OUT		DDRD, R16				// Activa los bits como salida
+000042 e000                      	LDI		R16, 0x00
+000043 b90b                      	OUT		PORTD, R16				// Muestra "0" en el display
                                  	// CONFIGURACION DE INTERRUPCIONES
-000016 e002                      	LDI		R16, (1 << PCIE1)
-000017 9300 0068                     STS		PCICR, R16				// Habilita interrupciones en PORTC
-000019 e003                          LDI		R16, (1 << PCINT8) | (1 << PCINT9)
-00001a 9300 006c                     STS		PCMSK1, R16				// Habilita interrupciones en PC0 y PC1
+000044 e002                      	LDI		R16, (1 << PCIE1)
+000045 9300 0068                     STS		PCICR, R16				// Habilita interrupciones en PORTC
+000047 e003                          LDI		R16, (1 << PCINT8) | (1 << PCINT9)
+000048 9300 006c                     STS		PCMSK1, R16				// Habilita interrupciones en PC0 y PC1
                                  
                                      ; Inicialización del contador
-00001c e000                          LDI		R16, 0x00
-00001d 9300 0100                     STS		CONTADOR, R16
-                                 
-00001f 9478                          SEI		// Habilita interrupciones globales
+00004a e010                      	LDI		R17, 0x00
+                                     /*STS		CONTADOR, R16*/
+00004b e050                      	LDI		CONTADOR7, 0x00
+00004c e040                      	LDI		contador_ciclos, 0x00
+00004d 9478                          SEI		// Habilita interrupciones globales
                                  
                                  MAIN:
-000020 cfff                      	RJMP	MAIN		// Bucle principal
+00004e cfff                      	RJMP	MAIN		// Bucle principal
                                  
                                  CONTADOR_4BITS:
-000021 930f                      	PUSH	R16
-000022 b70f                      	IN		R16, SREG
-000023 930f                      	PUSH	R16
+00004f 930f                      	PUSH	R16
+000050 b70f                      	IN		R16, SREG
+000051 930f                      	PUSH	R16
                                  
-                                 /*	LDI		R18, 50
-                                 ANTIREBOTE:
-                                 	DEC		R18
-                                 	BRNE	ANTIREBOTE*/
+000052 b106                      	IN		R16, PINC
+                                 	//LDS		R17, CONTADOR
+000053 ff00                      	SBRS	R16, 0
+000054 9513                      	INC		R17
+000055 ff01                      	SBRS	R16, 1
+000056 951a                      	DEC		R17
+000057 701f                      	ANDI	R17, 0x0F
+                                 	//STS		CONTADOR, R17
+000058 b915                      	OUT		PORTB, R17
                                  
-000024 b106                      	IN		R16, PINC
-000025 9110 0100                 	LDS		R17, CONTADOR
-000027 ff00                      	SBRS	R16, 0
-000028 9513                      	INC		R17
-000029 ff01                      	SBRS	R16, 1
-00002a 951a                      	DEC		R17
-00002b 701f                      	ANDI	R17, 0x0F
-00002c 9310 0100                 	STS		CONTADOR, R17
-00002e b915                      	OUT		PORTB, R17
+000059 910f                      	POP		R16
+00005a bf0f                      	OUT		SREG, R16
+00005b 910f                      	POP		R16
                                  
-00002f 910f                      	POP		R16
-000030 bf0f                      	OUT		SREG, R16
-000031 910f                      	POP		R16
+00005c 9518                      	RETI
+                                 
+                                 CONTADOR_DISPLAY:
+00005d 930f                      	PUSH	R16
+00005e b70f                      	IN		R16, SREG
+00005f 930f                      	PUSH	R16
+                                 	
+000060 9543                      	INC		contador_ciclos
+000061 3644                      	CPI		contador_ciclos, 100
+000062 f429                      	BRNE	SALIDA_DISPLAY
+000063 2744                      	CLR		contador_ciclos
+000064 9553                      	INC		CONTADOR7
+000065 305a                      	CPI		CONTADOR7, 0x0A
+000066 f409                      	BRNE	SALIDA_DISPLAY
+000067 2755                      	CLR		CONTADOR7
+                                 SALIDA_DISPLAY:
+000068 e0f0                      	LDI		ZH, HIGH(Tabla7seg<<1)	// Parte alta de Tabla7seg que esta en la Flash
+000069 e4e2                      	LDI		ZL, LOW(Tabla7seg<<1)	// Parte baja de la tabla
+00006a 0fe5                      	ADD		ZL, CONTADOR7			// Suma el contador al puntero Z
+00006b 9164                      	LPM		SALIDA7, Z				// Copia el valor del puntero
+00006c b96b                      	OUT		PORTD, SALIDA7			// Muestra la salida en PORT B
+                                 
+00006d 910f                      	POP		R16
+00006e bf0f                      	OUT		SREG, R16
+00006f 910f                      	POP		R16
                                  
 
 
@@ -1129,40 +1179,40 @@ counted separately from r26..r31 here.
 .dseg memory usage only counts static data declared with .byte
 
 "ATmega328P" register use summary:
-x  :   0 y  :   0 z  :   0 r0 :   0 r1 :   0 r2 :   0 r3 :   0 r4 :   0 
+x  :   0 y  :   0 z  :   1 r0 :   0 r1 :   0 r2 :   0 r3 :   0 r4 :   0 
 r5 :   0 r6 :   0 r7 :   0 r8 :   0 r9 :   0 r10:   0 r11:   0 r12:   0 
-r13:   0 r14:   0 r15:   0 r16:  27 r17:   6 r18:   0 r19:   0 r20:   0 
-r21:   0 r22:   0 r23:   0 r24:   0 r25:   0 r26:   0 r27:   0 r28:   0 
-r29:   0 r30:   0 r31:   0 
-Registers used: 2 out of 35 (5.7%)
+r13:   0 r14:   0 r15:   0 r16:  45 r17:   5 r18:   0 r19:   0 r20:   4 
+r21:   5 r22:   2 r23:   0 r24:   0 r25:   0 r26:   0 r27:   0 r28:   0 
+r29:   0 r30:   2 r31:   1 
+Registers used: 8 out of 35 (22.9%)
 
 "ATmega328P" instruction use summary:
-.lds  :   0 .sts  :   0 adc   :   0 add   :   0 adiw  :   0 and   :   0 
+.lds  :   0 .sts  :   0 adc   :   0 add   :   1 adiw  :   0 and   :   0 
 andi  :   1 asr   :   0 bclr  :   0 bld   :   0 brbc  :   0 brbs  :   0 
 brcc  :   0 brcs  :   0 break :   0 breq  :   0 brge  :   0 brhc  :   0 
 brhs  :   0 brid  :   0 brie  :   0 brlo  :   0 brlt  :   0 brmi  :   0 
-brne  :   0 brpl  :   0 brsh  :   0 brtc  :   0 brts  :   0 brvc  :   0 
+brne  :   2 brpl  :   0 brsh  :   0 brtc  :   0 brts  :   0 brvc  :   0 
 brvs  :   0 bset  :   0 bst   :   0 call  :   0 cbi   :   0 cbr   :   0 
-clc   :   0 clh   :   0 cli   :   1 cln   :   0 clr   :   0 cls   :   0 
+clc   :   0 clh   :   0 cli   :   1 cln   :   0 clr   :   2 cls   :   0 
 clt   :   0 clv   :   0 clz   :   0 com   :   0 cp    :   0 cpc   :   0 
-cpi   :   0 cpse  :   0 dec   :   1 eor   :   0 fmul  :   0 fmuls :   0 
-fmulsu:   0 icall :   0 ijmp  :   0 in    :   2 inc   :   1 jmp   :   0 
-ld    :   0 ldd   :   0 ldi   :   9 lds   :   1 lpm   :   0 lsl   :   0 
+cpi   :   2 cpse  :   0 dec   :   1 eor   :   0 fmul  :   0 fmuls :   0 
+fmulsu:   0 icall :   0 ijmp  :   0 in    :   3 inc   :   3 jmp   :   0 
+ld    :   0 ldd   :   0 ldi   :  20 lds   :   0 lpm   :   2 lsl   :   0 
 lsr   :   0 mov   :   0 movw  :   0 mul   :   0 muls  :   0 mulsu :   0 
-neg   :   0 nop   :   0 or    :   0 ori   :   0 out   :   8 pop   :   2 
-push  :   2 rcall :   0 ret   :   0 reti  :   1 rjmp  :   3 rol   :   0 
+neg   :   0 nop   :   0 or    :   0 ori   :   0 out   :  14 pop   :   4 
+push  :   4 rcall :   0 ret   :   0 reti  :   2 rjmp  :   4 rol   :   0 
 ror   :   0 sbc   :   0 sbci  :   0 sbi   :   0 sbic  :   0 sbis  :   0 
 sbiw  :   0 sbr   :   0 sbrc  :   0 sbrs  :   2 sec   :   0 seh   :   0 
 sei   :   1 sen   :   0 ser   :   0 ses   :   0 set   :   0 sev   :   0 
-sez   :   0 sleep :   0 spm   :   0 st    :   0 std   :   0 sts   :   4 
+sez   :   0 sleep :   0 spm   :   0 st    :   0 std   :   0 sts   :   5 
 sub   :   0 subi  :   0 swap  :   0 tst   :   0 wdr   :   0 
-Instructions used: 15 out of 113 (13.3%)
+Instructions used: 19 out of 113 (16.8%)
 
 "ATmega328P" memory use summary [bytes]:
 Segment   Begin    End      Code   Data   Used    Size   Use%
 ---------------------------------------------------------------
-[.cseg] 0x000000 0x000066     88      0     88   32768   0.3%
-[.dseg] 0x000100 0x000101      0      1      1    2048   0.0%
+[.cseg] 0x000000 0x0000e2    156     10    166   32768   0.5%
+[.dseg] 0x000100 0x000100      0      0      0    2048   0.0%
 [.eseg] 0x000000 0x000000      0      0      0    1024   0.0%
 
 Assembly complete, 0 errors, 0 warnings
