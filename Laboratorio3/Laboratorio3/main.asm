@@ -28,6 +28,9 @@ CONTADOR:	.byte	1		// Guarda el contador en la SRAM
 .def contador_ciclos = R20
 .def CONTADOR7 = R21
 .def SALIDA7 = R22
+.def comparador_PORTB = R23
+.def entrada_PORTB = R24
+.def salida_PORTB = R25
 // Tabla de valores del display de 7 segmentos
 Tabla7seg: .db 0x40, 0x79, 0x24, 0x30, 0x19, 0x12, 0x02, 0x78, 0x00, 0x10
 SETUP:
@@ -43,10 +46,10 @@ SETUP:
 	LDI		R16, 0b00000100
 	STS		CLKPR, R16				// Configurar Prescaler a 16 F_cpu = 1MHz
 	// INICIA TEMPORIZADOR
-	LDI		R16, (1 << CS01) | (1 << CS00)  // Prescaler es 64
-	OUT		TCCR0B, R16
-	LDI		R16, 60							// Valor inicial del TCNT0
-	OUT		TCNT0, R16
+	LDI  R16, (1 << CS01) | (1 << CS00)  ; Prescaler = 64
+	OUT  TCCR0B, R16
+	LDI  R16, 30  ; Valor inicial del Timer0
+	OUT  TCNT0, R16
 	// HABILITAR INTERRUPCIONES DEL TOV0
 	LDI		R16, (1 << TOIE0)			// Habilita interrupciones por desbordamiento
 	STS		TIMSK0, R16
@@ -57,9 +60,9 @@ SETUP:
 	LDI		R16, (1 << PC0) | (1 << PC1)
 	OUT		PORTC, R16				// Habilita pull-ups
 	// Configuración PORT B como salida inicialmente apagada
-	LDI		R16, 0x0F
+	LDI		R16, 0xFF
 	OUT		DDRB, R16				// Activa los 4 bits menos significativos como salidas
-	LDI		R16, 0x00
+	LDI		R16, 0x10
 	OUT		PORTB, R16				// Apaga la salida
 	// Configuración PORT D como salida inicialmente apagada
 	LDI		R16, 0xFF
@@ -72,11 +75,12 @@ SETUP:
     LDI		R16, (1 << PCINT8) | (1 << PCINT9)
     STS		PCMSK1, R16				// Habilita interrupciones en PC0 y PC1
 
-    ; Inicialización del contador
+    ; Inicialización del contador y variables
     LDI		R16, 0x00
     STS		CONTADOR, R16
 	LDI		CONTADOR7, 0x00
 	LDI		contador_ciclos, 0x00
+	LDI		comparador_PORTB, 0x30
 
     SEI		// Habilita interrupciones globales
 
@@ -96,6 +100,7 @@ CONTADOR_4BITS:
 	DEC		R17
 	ANDI	R17, 0x0F
 	STS		CONTADOR, R17
+	OR		entrada_PORTB, R17
 	OUT		PORTB, R17
 
 	POP		R16
@@ -109,6 +114,10 @@ CONTADOR_DISPLAY:
 	IN		R16, SREG
 	PUSH	R16
 	
+	IN		entrada_PORTB, PINB
+	EOR		entrada_PORTB, comparador_PORTB
+	OR		entrada_PORTB, R17
+	OUT		PORTB, entrada_PORTB
 	INC		contador_ciclos
 	CPI		contador_ciclos, 100
 	BRNE	SALIDA_DISPLAY
@@ -117,12 +126,13 @@ CONTADOR_DISPLAY:
 	CPI		CONTADOR7, 0x0A
 	BRNE	SALIDA_DISPLAY
 	CLR		CONTADOR7
+
 SALIDA_DISPLAY:
 	LDI		ZH, HIGH(Tabla7seg<<1)	// Parte alta de Tabla7seg que esta en la Flash
 	LDI		ZL, LOW(Tabla7seg<<1)	// Parte baja de la tabla
 	ADD		ZL, CONTADOR7			// Suma el contador al puntero Z
 	LPM		SALIDA7, Z				// Copia el valor del puntero
-	OUT		PORTD, SALIDA7			// Muestra la salida en PORT B
+	OUT		PORTD, SALIDA7			// Muestra la salida en PORT D
 
 	POP		R16
 	OUT		SREG, R16
