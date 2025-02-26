@@ -13,10 +13,10 @@
 
 // Encabezado. Define registros, variables y constantes.
 .include "M328PDEF.inc"
-// Variables en SRAM
+/*// Variables en SRAM
 .dseg
 .org	SRAM_START
-CONTADOR:	.byte	1		// Guarda el contador en la SRAM
+CONTADOR:	.byte	1		// Guarda el contador en la SRAM*/
 // Código FLASH
 .cseg
 .org	0x0000
@@ -24,13 +24,17 @@ CONTADOR:	.byte	1		// Guarda el contador en la SRAM
 .org	PCI1addr			// Pin Change Interrupt PORT C
 	RJMP	CONTADOR_4BITS
 .org	OVF0addr
-	RJMP	CONTADOR_DISPLAY
+	RJMP	TIMER0_ISR
+.def CONTADOR = R17
+.def ALT_DISPLAY = R18
 .def contador_ciclos = R20
-.def CONTADOR7 = R21
-.def SALIDA7 = R22
-.def comparador_PORTB = R23
-.def entrada_PORTB = R24
-.def salida_PORTB = R25
+.def CONTADOR7_U = R21
+.def CONTADOR7_D = R22
+.def CONTADOR7 = R19
+.def SALIDA7 = R23
+.def comparador_PORTB = R24
+.def out_PORTB = R25
+
 // Tabla de valores del display de 7 segmentos
 Tabla7seg: .db 0x40, 0x79, 0x24, 0x30, 0x19, 0x12, 0x02, 0x78, 0x00, 0x10
 SETUP:
@@ -40,6 +44,7 @@ SETUP:
 	OUT		SPL, R16
 	LDI		R16, HIGH(RAMEND)
 	OUT		SPH, R16
+
 	// Configuración del PRESCALER
 	LDI		R16, (1 << CLKPCE)
 	STS		CLKPR, R16				// Habilitar cambio de PRESCALER
@@ -53,6 +58,7 @@ SETUP:
 	// HABILITAR INTERRUPCIONES DEL TOV0
 	LDI		R16, (1 << TOIE0)			// Habilita interrupciones por desbordamiento
 	STS		TIMSK0, R16
+
 	// CONFIGURACIÓN DE ENTRADAS Y SALIDAS
 	// Configuración PORT C como entrada con pull-up habilitado
 	LDI		R16, 0x00
@@ -75,33 +81,54 @@ SETUP:
     LDI		R16, (1 << PCINT8) | (1 << PCINT9)
     STS		PCMSK1, R16				// Habilita interrupciones en PC0 y PC1
 
-    ; Inicialización del contador y variables
-    LDI		R16, 0x00
-    STS		CONTADOR, R16
+    // Inicialización de variables
+    LDI		ALT_DISPLAY, 0x01
+	LDI		CONTADOR, 0x00
 	LDI		CONTADOR7, 0x00
 	LDI		contador_ciclos, 0x00
-	LDI		comparador_PORTB, 0x30
+	LDI		comparador_PORTB, 0x03
+	CLR		out_PORTB
+	CLR		CONTADOR7_U
+	CLR		CONTADOR7_D
 
     SEI		// Habilita interrupciones globales
 
-MAIN:
-	RJMP	MAIN		// Bucle principal
+MAIN:		// Bucle principal
+	RJMP	MAIN
 
+ALTERNAR_DISPLAY:
+	EOR		ALT_DISPLAY, comparador_PORTB
+	MOV		out_PORTB, ALT_DISPLAY
+	SWAP	out_PORTB
+	OR		out_PORTB, CONTADOR
+	OUT		PORTB, out_PORTB
+
+	SBRS	out_PORTB, 4
+	MOV		CONTADOR7, CONTADOR7_D
+	SBRS	out_PORTB, 5
+	MOV		CONTADOR7, CONTADOR7_U
+
+	LDI		ZH, HIGH(Tabla7seg<<1)	// Parte alta de Tabla7seg que esta en la Flash
+	LDI		ZL, LOW(Tabla7seg<<1)	// Parte baja de la tabla
+	ADD		ZL, CONTADOR7			// Suma el contador al puntero Z
+	LPM		SALIDA7, Z				// Copia el valor del puntero
+	OUT		PORTD, SALIDA7			// Muestra la salida en PORT D
+	RET
+
+// SUB-RUTINAS DE INTERRUPCION
 CONTADOR_4BITS:
 	PUSH	R16
 	IN		R16, SREG
 	PUSH	R16
 
 	IN		R16, PINC
-	LDS		R17, CONTADOR
 	SBRS	R16, 0
-	INC		R17
+	INC		CONTADOR
 	SBRS	R16, 1
-	DEC		R17
-	ANDI	R17, 0x0F
-	STS		CONTADOR, R17
-	OR		entrada_PORTB, R17
-	OUT		PORTB, R17
+	DEC		CONTADOR
+	ANDI	CONTADOR, 0x0F
+	
+	OUT		PORTB, CONTADOR
 
 	POP		R16
 	OUT		SREG, R16
@@ -109,31 +136,26 @@ CONTADOR_4BITS:
 
 	RETI
 
-CONTADOR_DISPLAY:
+TIMER0_ISR:
 	PUSH	R16
 	IN		R16, SREG
 	PUSH	R16
 	
-	IN		entrada_PORTB, PINB
-	EOR		entrada_PORTB, comparador_PORTB
-	OR		entrada_PORTB, R17
-	OUT		PORTB, entrada_PORTB
 	INC		contador_ciclos
 	CPI		contador_ciclos, 100
-	BRNE	SALIDA_DISPLAY
+	BRNE	FIN_TIMER0
 	CLR		contador_ciclos
-	INC		CONTADOR7
-	CPI		CONTADOR7, 0x0A
-	BRNE	SALIDA_DISPLAY
-	CLR		CONTADOR7
-
-SALIDA_DISPLAY:
-	LDI		ZH, HIGH(Tabla7seg<<1)	// Parte alta de Tabla7seg que esta en la Flash
-	LDI		ZL, LOW(Tabla7seg<<1)	// Parte baja de la tabla
-	ADD		ZL, CONTADOR7			// Suma el contador al puntero Z
-	LPM		SALIDA7, Z				// Copia el valor del puntero
-	OUT		PORTD, SALIDA7			// Muestra la salida en PORT D
-
+	INC		CONTADOR7_U
+	CPI		CONTADOR7_U, 0x0A
+	BRNE	FIN_TIMER0
+	CLR		CONTADOR7_U
+	INC		CONTADOR7_D
+	CPI		CONTADOR7_D, 0x06
+	BRNE	FIN_TIMER0
+	CLR		CONTADOR7_U
+	CLR		CONTADOR7_D
+FIN_TIMER0:
+	CALL	ALTERNAR_DISPLAY
 	POP		R16
 	OUT		SREG, R16
 	POP		R16

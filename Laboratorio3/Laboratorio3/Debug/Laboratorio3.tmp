@@ -23,12 +23,12 @@
   <FILE>Laboratorio3.lss</FILE>
  </OUTPUT_FILES>
  <LABELS>
-  <CONTADOR><FILE>D:\Documents\GitHub\Laboratorio3\Laboratorio3\Laboratorio3\main.asm</FILE><LINE>19</LINE></CONTADOR>
-  <SETUP><FILE>D:\Documents\GitHub\Laboratorio3\Laboratorio3\Laboratorio3\main.asm</FILE><LINE>36</LINE></SETUP>
-  <CONTADOR_4BITS><FILE>D:\Documents\GitHub\Laboratorio3\Laboratorio3\Laboratorio3\main.asm</FILE><LINE>90</LINE></CONTADOR_4BITS>
-  <CONTADOR_DISPLAY><FILE>D:\Documents\GitHub\Laboratorio3\Laboratorio3\Laboratorio3\main.asm</FILE><LINE>112</LINE></CONTADOR_DISPLAY>
-  <Tabla7seg><FILE>D:\Documents\GitHub\Laboratorio3\Laboratorio3\Laboratorio3\main.asm</FILE><LINE>35</LINE></Tabla7seg>
-  <MAIN><FILE>D:\Documents\GitHub\Laboratorio3\Laboratorio3\Laboratorio3\main.asm</FILE><LINE>87</LINE></MAIN>
-  <SALIDA_DISPLAY><FILE>D:\Documents\GitHub\Laboratorio3\Laboratorio3\Laboratorio3\main.asm</FILE><LINE>130</LINE></SALIDA_DISPLAY>
+  <SETUP><FILE>D:\Documents\GitHub\Laboratorio3\Laboratorio3\Laboratorio3\main.asm</FILE><LINE>40</LINE></SETUP>
+  <CONTADOR_4BITS><FILE>D:\Documents\GitHub\Laboratorio3\Laboratorio3\Laboratorio3\main.asm</FILE><LINE>119</LINE></CONTADOR_4BITS>
+  <TIMER0_ISR><FILE>D:\Documents\GitHub\Laboratorio3\Laboratorio3\Laboratorio3\main.asm</FILE><LINE>139</LINE></TIMER0_ISR>
+  <Tabla7seg><FILE>D:\Documents\GitHub\Laboratorio3\Laboratorio3\Laboratorio3\main.asm</FILE><LINE>39</LINE></Tabla7seg>
+  <MAIN><FILE>D:\Documents\GitHub\Laboratorio3\Laboratorio3\Laboratorio3\main.asm</FILE><LINE>96</LINE></MAIN>
+  <ALTERNAR_DISPLAY><FILE>D:\Documents\GitHub\Laboratorio3\Laboratorio3\Laboratorio3\main.asm</FILE><LINE>99</LINE></ALTERNAR_DISPLAY>
+  <FIN_TIMER0><FILE>D:\Documents\GitHub\Laboratorio3\Laboratorio3\Laboratorio3\main.asm</FILE><LINE>157</LINE></FIN_TIMER0>
  </LABELS>
 </ASSEMBLER_INFO>
