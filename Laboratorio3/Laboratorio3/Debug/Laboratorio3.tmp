@@ -25,10 +25,10 @@
  <LABELS>
   <SETUP><FILE>D:\Documents\GitHub\Laboratorio3\Laboratorio3\Laboratorio3\main.asm</FILE><LINE>40</LINE></SETUP>
   <CONTADOR_4BITS><FILE>D:\Documents\GitHub\Laboratorio3\Laboratorio3\Laboratorio3\main.asm</FILE><LINE>119</LINE></CONTADOR_4BITS>
-  <TIMER0_ISR><FILE>D:\Documents\GitHub\Laboratorio3\Laboratorio3\Laboratorio3\main.asm</FILE><LINE>139</LINE></TIMER0_ISR>
+  <TIMER0_ISR><FILE>D:\Documents\GitHub\Laboratorio3\Laboratorio3\Laboratorio3\main.asm</FILE><LINE>138</LINE></TIMER0_ISR>
   <Tabla7seg><FILE>D:\Documents\GitHub\Laboratorio3\Laboratorio3\Laboratorio3\main.asm</FILE><LINE>39</LINE></Tabla7seg>
   <MAIN><FILE>D:\Documents\GitHub\Laboratorio3\Laboratorio3\Laboratorio3\main.asm</FILE><LINE>96</LINE></MAIN>
   <ALTERNAR_DISPLAY><FILE>D:\Documents\GitHub\Laboratorio3\Laboratorio3\Laboratorio3\main.asm</FILE><LINE>99</LINE></ALTERNAR_DISPLAY>
-  <FIN_TIMER0><FILE>D:\Documents\GitHub\Laboratorio3\Laboratorio3\Laboratorio3\main.asm</FILE><LINE>157</LINE></FIN_TIMER0>
+  <FIN_TIMER0><FILE>D:\Documents\GitHub\Laboratorio3\Laboratorio3\Laboratorio3\main.asm</FILE><LINE>156</LINE></FIN_TIMER0>
  </LABELS>
 </ASSEMBLER_INFO>

@@ -8,7 +8,7 @@
 ; Descripcion: Contador binario de 4 bits que cambia con interrupciones.
 ; Hardware: ATMEGA328P
 ; Creado: 20/02/2025
-; Ultima modificacion: --
+; Ultima modificacion: 27/02/2025
 ;-----------------------------------------------
 
 // Encabezado. Define registros, variables y constantes.
@@ -53,7 +53,7 @@ SETUP:
 	// INICIA TEMPORIZADOR
 	LDI  R16, (1 << CS01) | (1 << CS00)  ; Prescaler = 64
 	OUT  TCCR0B, R16
-	LDI  R16, 30  ; Valor inicial del Timer0
+	LDI  R16, 60  ; Valor inicial del Timer0
 	OUT  TCNT0, R16
 	// HABILITAR INTERRUPCIONES DEL TOV0
 	LDI		R16, (1 << TOIE0)			// Habilita interrupciones por desbordamiento
@@ -96,15 +96,15 @@ SETUP:
 MAIN:		// Bucle principal
 	RJMP	MAIN
 
-ALTERNAR_DISPLAY:
-	EOR		ALT_DISPLAY, comparador_PORTB
-	MOV		out_PORTB, ALT_DISPLAY
-	SWAP	out_PORTB
-	OR		out_PORTB, CONTADOR
-	OUT		PORTB, out_PORTB
+ALTERNAR_DISPLAY: // Función para alternar la salidad en los displays
+	EOR		ALT_DISPLAY, comparador_PORTB	// XOR para alternar entre 01 y 10
+	MOV		out_PORTB, ALT_DISPLAY			// Copia la alternacion en la salida
+	SWAP	out_PORTB						// 00000xx --> 00xx0000
+	OR		out_PORTB, CONTADOR				// Combina el contador de leds con la alternación
+	OUT		PORTB, out_PORTB				// Salida del PORT B
 
-	SBRS	out_PORTB, 4
-	MOV		CONTADOR7, CONTADOR7_D
+	SBRS	out_PORTB, 4					// Escoge salida de unidades o decenas
+	MOV		CONTADOR7, CONTADOR7_D			// Copia valor en la salida del contador
 	SBRS	out_PORTB, 5
 	MOV		CONTADOR7, CONTADOR7_U
 
@@ -121,14 +121,13 @@ CONTADOR_4BITS:
 	IN		R16, SREG
 	PUSH	R16
 
-	IN		R16, PINC
-	SBRS	R16, 0
+	IN		R16, PINC		// Entrada Botones
+	SBRS	R16, 0			// Botón de aumento presinado
 	INC		CONTADOR
-	SBRS	R16, 1
+	SBRS	R16, 1			// Botón de decremento presionado
 	DEC		CONTADOR
-	ANDI	CONTADOR, 0x0F
-	
-	OUT		PORTB, CONTADOR
+	ANDI	CONTADOR, 0x0F	// Máscara para 4 bits
+	OUT		PORTB, CONTADOR	// Salida 
 
 	POP		R16
 	OUT		SREG, R16
@@ -141,21 +140,21 @@ TIMER0_ISR:
 	IN		R16, SREG
 	PUSH	R16
 	
-	INC		contador_ciclos
-	CPI		contador_ciclos, 100
+	INC		contador_ciclos			// Incremento de ciclos para 1s
+	CPI		contador_ciclos, 50		// Llega al segundo
+	BRNE	FIN_TIMER0				
+	CLR		contador_ciclos			// Limpia el conteo de ciclos
+	INC		CONTADOR7_U				// Contador de unidades
+	CPI		CONTADOR7_U, 0x0A		// Para no pasar de 9
 	BRNE	FIN_TIMER0
-	CLR		contador_ciclos
-	INC		CONTADOR7_U
-	CPI		CONTADOR7_U, 0x0A
+	CLR		CONTADOR7_U				// Limpia unidades
+	INC		CONTADOR7_D				// Contador de decenas
+	CPI		CONTADOR7_D, 0x06		// Para no pasar de 60s
 	BRNE	FIN_TIMER0
-	CLR		CONTADOR7_U
-	INC		CONTADOR7_D
-	CPI		CONTADOR7_D, 0x06
-	BRNE	FIN_TIMER0
-	CLR		CONTADOR7_U
+	CLR		CONTADOR7_U				// Limpia contadores unidades, decenas
 	CLR		CONTADOR7_D
 FIN_TIMER0:
-	CALL	ALTERNAR_DISPLAY
+	CALL	ALTERNAR_DISPLAY		// Llama a la función de salida
 	POP		R16
 	OUT		SREG, R16
 	POP		R16
